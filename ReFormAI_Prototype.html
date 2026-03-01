@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReFormAI – Intelligent Formwork Planning</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050A14;
+    --bg2: #0A1220;
+    --surface: #0F1A2E;
+    --surface2: #152038;
+    --border: rgba(56,139,253,0.15);
+    --blue: #3B82F6;
+    --blue-bright: #60A5FA;
+    --cyan: #06B6D4;
+    --green: #10B981;
+    --amber: #F59E0B;
+    --red: #EF4444;
+    --text: #E2E8F0;
+    --text-muted: #64748B;
+    --glow: rgba(59,130,246,0.3);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 32px;
+    background: rgba(5,10,20,0.8);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.3rem;
+    background: linear-gradient(135deg, var(--blue-bright), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 0.82rem; font-weight: 500; cursor: pointer;
+    color: var(--text-muted); border: none; background: transparent;
+    transition: all 0.2s;
+  }
+  .nav-tab:hover { color: var(--text); background: var(--surface); }
+  .nav-tab.active { color: var(--blue-bright); background: rgba(59,130,246,0.12); }
+  .nav-badge {
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    color: #fff; cursor: pointer; border: none;
+  }
+
+  /* PAGES */
+  .page { display: none; min-height: 100vh; padding: 80px 0 40px; }
+  .page.active { display: block; }
+
+  /* ===== HERO ===== */
+  #hero {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center;
+    padding: 120px 24px 60px; min-height: 100vh;
+    position: relative;
+  }
+  .hero-grid {
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 40%, transparent 100%);
+  }
+  .hero-orb {
+    position: absolute; width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+    border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    animation: pulse-orb 4s ease-in-out infinite;
+  }
+  @keyframes pulse-orb {
+    0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.8; }
+    50% { transform: translate(-50%,-50%) scale(1.08); opacity: 1; }
+  }
+  .hero-chip {
+    position: relative; z-index: 1;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 20px;
+    border: 1px solid rgba(59,130,246,0.3);
+    background: rgba(59,130,246,0.08);
+    font-size: 0.75rem; font-weight: 500; color: var(--blue-bright);
+    margin-bottom: 24px; letter-spacing: 0.5px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .hero-title {
+    position: relative; z-index: 1;
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    font-weight: 800; line-height: 1.05;
+    letter-spacing: -2px; margin-bottom: 20px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero-title .grad {
+    background: linear-gradient(135deg, #fff 30%, var(--blue-bright) 70%, var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    position: relative; z-index: 1;
+    max-width: 520px; font-size: 1.05rem;
+    color: var(--text-muted); line-height: 1.6;
+    margin-bottom: 36px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .hero-ctas {
+    position: relative; z-index: 1;
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .btn-primary {
+    padding: 12px 28px; border-radius: 8px; cursor: pointer; border: none;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    color: #fff; font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; font-weight: 600;
+    box-shadow: 0 0 24px rgba(59,130,246,0.3);
+    transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .btn-primary::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0; transition: 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(59,130,246,0.5); }
+  .btn-primary:hover::after { opacity: 1; }
+  .btn-outline {
+    padding: 12px 28px; border-radius: 8px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-outline:hover { border-color: var(--blue); color: var(--blue-bright); background: rgba(59,130,246,0.06); }
+  .hero-stats {
+    position: relative; z-index: 1;
+    display: flex; gap: 40px; margin-top: 60px;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--blue-bright), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== SECTION WRAPPER ===== */
+  .section { padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .section-header { margin-bottom: 28px; }
+  .section-label {
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--blue-bright);
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px;
+  }
+  .section-desc { color: var(--text-muted); font-size: 0.9rem; margin-top: 6px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    border-color: rgba(59,130,246,0.3);
+    box-shadow: 0 0 24px rgba(59,130,246,0.06);
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700; margin-bottom: 6px;
+  }
+  .card-sub { font-size: 0.82rem; color: var(--text-muted); }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+
+  /* ===== DASHBOARD CARDS ===== */
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    position: relative; overflow: hidden;
+    transition: all 0.2s;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi-card.blue::before { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+  .kpi-card.green::before { background: linear-gradient(90deg, var(--green), #34D399); }
+  .kpi-card.amber::before { background: linear-gradient(90deg, var(--amber), #FCD34D); }
+  .kpi-card.red::before { background: linear-gradient(90deg, var(--red), #F87171); }
+  .kpi-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; }
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem; font-weight: 800; letter-spacing: -1px;
+  }
+  .kpi-card.blue .kpi-value { color: var(--blue-bright); }
+  .kpi-card.green .kpi-value { color: #34D399; }
+  .kpi-card.amber .kpi-value { color: #FCD34D; }
+  .kpi-card.red .kpi-value { color: #F87171; }
+  .kpi-change {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 0.72rem; font-weight: 600; margin-top: 6px;
+    padding: 2px 7px; border-radius: 4px;
+  }
+  .kpi-change.up { background: rgba(16,185,129,0.12); color: var(--green); }
+  .kpi-change.down { background: rgba(239,68,68,0.12); color: var(--red); }
+
+  /* CHART PLACEHOLDER */
+  .chart-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem; font-weight: 700; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  canvas { display: block; }
+
+  /* BAR CHART SVG */
+  .bar-chart { width: 100%; height: 180px; }
+
+  /* ===== TABS ===== */
+  .tab-group { display: flex; gap: 4px; margin-bottom: 20px; }
+  .tab-btn {
+    padding: 7px 16px; border-radius: 6px; font-size: 0.82rem;
+    font-weight: 500; cursor: pointer; border: none;
+    background: transparent; color: var(--text-muted);
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--surface); }
+  .tab-btn.active { color: var(--blue-bright); background: rgba(59,130,246,0.12); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ===== PIPELINE STEPS ===== */
+  .pipeline {
+    display: flex; align-items: stretch; gap: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .pipe-step {
+    flex: 1; padding: 20px 16px; position: relative;
+    border-right: 1px solid var(--border); cursor: pointer;
+    transition: background 0.2s;
+  }
+  .pipe-step:last-child { border-right: none; }
+  .pipe-step:hover, .pipe-step.active { background: rgba(59,130,246,0.07); }
+  .pipe-step.active .pipe-num { background: var(--blue); color: #fff; }
+  .pipe-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--surface2); color: var(--text-muted);
+    font-size: 0.75rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px; border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .pipe-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; }
+  .pipe-desc { font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; }
+  .pipe-arrow {
+    position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: var(--text-muted); z-index: 2;
+  }
+  .pipe-step:last-child .pipe-arrow { display: none; }
+
+  /* ===== UPLOAD ZONE ===== */
+  .upload-zone {
+    border: 2px dashed rgba(59,130,246,0.25);
+    border-radius: 12px; padding: 40px;
+    text-align: center; cursor: pointer;
+    transition: all 0.2s; background: rgba(59,130,246,0.02);
+    position: relative; overflow: hidden;
+  }
+  .upload-zone:hover {
+    border-color: var(--blue);
+    background: rgba(59,130,246,0.06);
+  }
+  .upload-zone.dragging {
+    border-color: var(--cyan);
+    background: rgba(6,182,212,0.08);
+  }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .upload-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+  .upload-sub { font-size: 0.82rem; color: var(--text-muted); }
+
+  /* ===== TABLE ===== */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .data-table th {
+    text-align: left; padding: 10px 14px;
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.8px;
+    text-transform: uppercase; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td { padding: 12px 14px; border-bottom: 1px solid rgba(56,139,253,0.06); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(59,130,246,0.03); }
+
+  /* STATUS BADGES */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 600;
+  }
+  .badge-green { background: rgba(16,185,129,0.12); color: #34D399; }
+  .badge-amber { background: rgba(245,158,11,0.12); color: #FCD34D; }
+  .badge-red { background: rgba(239,68,68,0.12); color: #F87171; }
+  .badge-blue { background: rgba(59,130,246,0.12); color: var(--blue-bright); }
+  .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  /* ===== PROGRESS BARS ===== */
+  .progress-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+  .progress-fill.blue { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+  .progress-fill.green { background: linear-gradient(90deg, var(--green), #34D399); }
+  .progress-fill.amber { background: linear-gradient(90deg, var(--amber), #FCD34D); }
+
+  /* ===== NOTIFICATION ===== */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 8px; padding: 12px 18px;
+    font-size: 0.82rem; max-width: 300px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateX(120%); transition: transform 0.3s ease;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast-title { font-weight: 600; margin-bottom: 2px; }
+  .toast-msg { color: var(--text-muted); font-size: 0.78rem; }
+
+  /* ===== MINI SPARKLINE ===== */
+  .sparkline { overflow: visible; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+  /* ===== HEATMAP ===== */
+  .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .heatmap-cell {
+    aspect-ratio: 1; border-radius: 2px;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .heatmap-cell:hover { transform: scale(1.3); z-index: 2; position: relative; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px; max-width: 480px; width: 90%;
+    animation: fadeUp 0.3s ease;
+  }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; }
+  .modal-close { float: right; cursor: pointer; color: var(--text-muted); font-size: 1.2rem; }
+
+  /* INPUT */
+  .form-input {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    outline: none; transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  .form-input:focus { border-color: var(--blue); }
+  .form-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; }
+  select.form-input { cursor: pointer; }
+
+  /* LOADING */
+  .loading-bar {
+    height: 3px; background: var(--surface2); border-radius: 2px;
+    overflow: hidden; margin: 8px 0;
+  }
+  .loading-fill {
+    height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan), var(--blue));
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite; border-radius: 2px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* TIMELINE */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 16px; padding: 0 0 20px; }
+  .tl-left { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--blue); border: 2px solid var(--bg);
+    box-shadow: 0 0 8px var(--blue); flex-shrink: 0; margin-top: 3px;
+  }
+  .tl-dot.done { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .tl-dot.pending { background: var(--text-muted); box-shadow: none; }
+  .tl-line { width: 1px; flex: 1; background: var(--border); margin-top: 4px; }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-content { flex: 1; }
+  .tl-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; }
+  .tl-sub { font-size: 0.75rem; color: var(--text-muted); }
+  .tl-tag {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.8px;
+    padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+  }
+
+  /* MOBILE */
+  @media(max-width: 768px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .pipeline { flex-direction: column; }
+    .hero-stats { gap: 24px; }
+  }
+
+  /* FLOW DIAGRAM */
+  .flow-diagram {
+    display: flex; gap: 0; align-items: center;
+    overflow-x: auto; padding: 12px 0;
+  }
+  .flow-node {
+    flex-shrink: 0;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 0.75rem; font-weight: 600; text-align: center;
+    min-width: 100px;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .flow-node:hover { border-color: var(--blue); color: var(--blue-bright); }
+  .flow-node.highlight {
+    border-color: var(--blue);
+    background: rgba(59,130,246,0.1);
+    color: var(--blue-bright);
+    box-shadow: 0 0 16px rgba(59,130,246,0.2);
+  }
+  .flow-arrow-right {
+    width: 32px; height: 2px; background: var(--border);
+    flex-shrink: 0; position: relative;
+  }
+  .flow-arrow-right::after {
+    content: '▸'; position: absolute; right: -4px; top: -7px;
+    font-size: 0.65rem; color: var(--text-muted);
+  }
+
+  /* ICON CIRCLES */
+  .icon-circle {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; margin-bottom: 12px;
+  }
+  .icon-circle.blue { background: rgba(59,130,246,0.15); }
+  .icon-circle.green { background: rgba(16,185,129,0.15); }
+  .icon-circle.amber { background: rgba(245,158,11,0.15); }
+  .icon-circle.cyan { background: rgba(6,182,212,0.15); }
+
+  /* SEPARATOR */
+  .sep { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* INSIGHT CARD */
+  .insight {
+    display: flex; gap: 12px; padding: 14px;
+    background: var(--surface2); border-radius: 8px; margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+  .insight-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+  .insight-title { font-size: 0.82rem; font-weight: 600; margin-bottom: 2px; }
+  .insight-desc { font-size: 0.75rem; color: var(--text-muted); }
+
+  /* SCROLLABLE TABLE WRAP */
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+
+  /* DEMO LABEL */
+  .demo-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--amber);
+    background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);
+    padding: 3px 8px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">⬡ ReFormAI</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('overview')">Overview</button>
+    <button class="nav-tab" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('bim')">BIM Engine</button>
+    <button class="nav-tab" onclick="showPage('kitting')">Smart Kitting</button>
+    <button class="nav-tab" onclick="showPage('forecast')">Forecast</button>
+    <button class="nav-tab" onclick="showPage('optimizer')">Optimizer</button>
+  </div>
+  <button class="nav-badge" onclick="showModal()">▶ Run Analysis</button>
+</nav>
+
+<!-- ======================================================
+     PAGE: OVERVIEW
+     ====================================================== -->
+<section class="page active" id="page-overview">
+  <div id="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-orb"></div>
+    <div class="hero-chip"><span class="chip-dot"></span> L&T CreaTech · Problem Statement 4</div>
+    <h1 class="hero-title"><span class="grad">ReFormAI</span></h1>
+    <p class="hero-sub">AI-powered formwork kitting automation. Reduce cost, eliminate waste, maximize reuse — from BIM to site in minutes.</p>
+    <div class="hero-ctas">
+      <button class="btn-primary" onclick="showPage('dashboard')">Open Live Dashboard</button>
+      <button class="btn-outline" onclick="showPage('bim')">Explore BIM Engine →</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="stat1">0%</div>
+        <div class="hero-stat-label">Cost Reduction</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="stat2">0%</div>
+        <div class="hero-stat-label">Inventory Saved</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="stat3">0x</div>
+        <div class="hero-stat-label">Reuse Cycles</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val" id="stat4">0%</div>
+        <div class="hero-stat-label">Planning Faster</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline -->
+  <div class="section" style="padding-top:0">
+    <div class="section-header">
+      <div class="section-label">System Pipeline</div>
+      <h2 class="section-title">How ReFormAI Works</h2>
+    </div>
+    <div class="pipeline">
+      <div class="pipe-step active" onclick="setActiveStep(this)">
+        <div class="pipe-num">1</div>
+        <div class="pipe-name">Data Ingestion</div>
+        <div class="pipe-desc">BIM models, project schedules & inventory feeds</div>
+        <div class="pipe-arrow">▸</div>
+      </div>
+      <div class="pipe-step" onclick="setActiveStep(this)">
+        <div class="pipe-num">2</div>
+        <div class="pipe-name">Clustering Engine</div>
+        <div class="pipe-desc">K-Means / hierarchical repetition detection</div>
+        <div class="pipe-arrow">▸</div>
+      </div>
+      <div class="pipe-step" onclick="setActiveStep(this)">
+        <div class="pipe-num">3</div>
+        <div class="pipe-name">Demand Forecasting</div>
+        <div class="pipe-desc">Prophet/ARIMA phase-wise material prediction</div>
+        <div class="pipe-arrow">▸</div>
+      </div>
+      <div class="pipe-step" onclick="setActiveStep(this)">
+        <div class="pipe-num">4</div>
+        <div class="pipe-name">Optimization Engine</div>
+        <div class="pipe-desc">Linear programming for cost minimization</div>
+        <div class="pipe-arrow">▸</div>
+      </div>
+      <div class="pipe-step" onclick="setActiveStep(this)">
+        <div class="pipe-num">5</div>
+        <div class="pipe-name">Smart Kits</div>
+        <div class="pipe-desc">Auto-generated ready-to-use formwork kits</div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Feature cards -->
+    <div class="grid-4" style="margin-top:0">
+      <div class="card" style="cursor:pointer" onclick="showPage('bim')">
+        <div class="icon-circle blue">🔵</div>
+        <div class="card-title">BIM Repetition Intelligence</div>
+        <div class="card-sub">Identifies similar structural elements to maximize formwork reuse across floors.</div>
+        <div style="margin-top:12px;"><span class="badge badge-blue">AI-Powered</span></div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="showPage('forecast')">
+        <div class="icon-circle cyan">📈</div>
+        <div class="card-title">Phase-Wise Demand Forecast</div>
+        <div class="card-sub">Time-series models predict material requirements per construction stage.</div>
+        <div style="margin-top:12px;"><span class="badge badge-green">Prophet / ARIMA</span></div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="showPage('optimizer')">
+        <div class="icon-circle amber">⚡</div>
+        <div class="card-title">Mathematical Optimization</div>
+        <div class="card-sub">Linear programming minimizes procurement and inventory holding costs.</div>
+        <div style="margin-top:12px;"><span class="badge badge-amber">LP Model</span></div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="showPage('kitting')">
+        <div class="icon-circle green">📦</div>
+        <div class="card-title">Smart Kit Generator</div>
+        <div class="card-sub">Auto-assembles optimal, ready-to-deploy formwork kits per phase.</div>
+        <div style="margin-top:12px;"><span class="badge badge-green">Automated</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     PAGE: DASHBOARD
+     ====================================================== -->
+<section class="page" id="page-dashboard">
+  <div class="section">
+    <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="section-label">Live Monitoring</div>
+        <h2 class="section-title">Project Dashboard</h2>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="demo-label">⚡ Demo Data</span>
+        <button class="btn-primary" style="padding:8px 18px;font-size:0.8rem" onclick="refreshDashboard()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid-4" style="margin-bottom:20px">
+      <div class="kpi-card blue">
+        <div class="kpi-label">ACTIVE PROJECTS</div>
+        <div class="kpi-value">7</div>
+        <div class="kpi-change up">↑ +2 this month</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">COST SAVED (₹)</div>
+        <div class="kpi-value">₹2.4Cr</div>
+        <div class="kpi-change up">↑ 18.3% vs manual</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">INVENTORY REDUCTION</div>
+        <div class="kpi-value">27%</div>
+        <div class="kpi-change up">↑ Target: 25%</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">PLANNING ERRORS</div>
+        <div class="kpi-value">0</div>
+        <div class="kpi-change down">↓ Was 14/month</div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="chart-wrap">
+        <div class="chart-title">
+          <span>Monthly Cost Savings (₹ Lakhs)</span>
+          <span class="badge badge-green">Live</span>
+        </div>
+        <svg viewBox="0 0 400 150" class="bar-chart" id="barChart">
+          <!-- Bars rendered by JS -->
+        </svg>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">
+          <span>Formwork Reuse Cycles</span>
+          <span class="badge badge-blue">Per Phase</span>
+        </div>
+        <svg viewBox="0 0 400 150" class="bar-chart" id="reuseChart"></svg>
+      </div>
+    </div>
+
+    <!-- Projects table + AI insights -->
+    <div class="grid-2">
+      <div>
+        <div class="card-title" style="margin-bottom:12px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700">Active Projects</div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Project</th><th>Phase</th><th>Kit Status</th><th>Savings</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600">LT-HYD-7B</td>
+                <td>Foundation</td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Optimized</span></td>
+                <td style="color:#34D399">₹18.2L</td>
+              </tr>
+              <tr>
+                <td style="font-weight:600">LT-MUM-3A</td>
+                <td>Superstructure</td>
+                <td><span class="badge badge-blue"><span class="badge-dot"></span>In Progress</span></td>
+                <td style="color:#34D399">₹31.7L</td>
+              </tr>
+              <tr>
+                <td style="font-weight:600">LT-CHE-11</td>
+                <td>Podium</td>
+                <td><span class="badge badge-amber"><span class="badge-dot"></span>Pending</span></td>
+                <td style="color:#FCD34D">₹9.4L</td>
+              </tr>
+              <tr>
+                <td style="font-weight:600">LT-BLR-5C</td>
+                <td>Basement</td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Optimized</span></td>
+                <td style="color:#34D399">₹22.1L</td>
+              </tr>
+              <tr>
+                <td style="font-weight:600">LT-DEL-9F</td>
+                <td>Shear Walls</td>
+                <td><span class="badge badge-red"><span class="badge-dot"></span>Alert</span></td>
+                <td style="color:#F87171">–₹2.3L</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div class="card-title" style="margin-bottom:12px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700">AI Insights</div>
+        <div class="insight">
+          <div class="insight-icon">🔁</div>
+          <div>
+            <div class="insight-title">High Reuse Opportunity Detected</div>
+            <div class="insight-desc">Floors 4–9 in LT-MUM-3A share 87% geometry. Reusing Kit #MU-04 saves ₹7.2L.</div>
+          </div>
+        </div>
+        <div class="insight">
+          <div class="insight-icon">⚠️</div>
+          <div>
+            <div class="insight-title">Shortage Risk: LT-DEL-9F</div>
+            <div class="insight-desc">24 × 600mm panels short for Phase 3. Recommend procurement order by March 10.</div>
+          </div>
+        </div>
+        <div class="insight">
+          <div class="insight-icon">📉</div>
+          <div>
+            <div class="insight-title">Excess Inventory Alert</div>
+            <div class="insight-desc">LT-HYD-7B has 12% surplus tie rods. Redistribute to LT-CHE-11 immediately.</div>
+          </div>
+        </div>
+        <div class="insight">
+          <div class="insight-icon">✅</div>
+          <div>
+            <div class="insight-title">BoQ Accuracy +31%</div>
+            <div class="insight-desc">AI-driven forecasting improved BoQ accuracy across all projects vs. last quarter.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     PAGE: BIM ENGINE
+     ====================================================== -->
+<section class="page" id="page-bim">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-label">BIM Repetition Intelligence</div>
+      <h2 class="section-title">Upload & Analyze BIM Model</h2>
+      <p class="section-desc">K-Means clustering detects structurally similar elements to maximize formwork reuse cycles.</p>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone" onclick="simulateBIMAnalysis()" ondragover="event.preventDefault();this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')">
+      <div class="upload-icon">🏗️</div>
+      <div class="upload-title">Drop BIM Model Here</div>
+      <div class="upload-sub">Supports .ifc, .rvt, .nwd · Click to simulate analysis</div>
+    </div>
+
+    <div id="bimResults" style="display:none;margin-top:20px">
+      <div style="margin-bottom:12px;">
+        <div class="loading-bar"><div class="loading-fill" style="width:100%"></div></div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">Analysis complete · 312 elements processed · 8 clusters detected</div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Cluster visualization -->
+        <div class="chart-wrap">
+          <div class="chart-title">Element Clusters (K-Means)</div>
+          <svg viewBox="0 0 360 200" id="clusterSvg" style="width:100%;height:200px"></svg>
+        </div>
+        <!-- Cluster table -->
+        <div class="chart-wrap">
+          <div class="chart-title">Repetition Analysis</div>
+          <table class="data-table">
+            <thead><tr><th>Cluster</th><th>Elements</th><th>Reuse Factor</th><th>Kit</th></tr></thead>
+            <tbody id="clusterTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <!-- Reuse heatmap -->
+      <div class="chart-wrap">
+        <div class="chart-title">Floor-wise Reuse Heatmap <span style="font-size:0.72rem;color:var(--text-muted);margin-left:8px">Darker = Higher Reuse</span></div>
+        <div style="padding:12px 0">
+          <div style="display:flex;gap:4px;align-items:center;margin-bottom:8px;font-size:0.7rem;color:var(--text-muted)">
+            <span>B2</span><span style="margin-left:4px">B1</span>
+            <span style="margin-left:4px">GF</span>
+            <span id="floorLabels"></span>
+          </div>
+          <div class="heatmap-grid" id="heatmap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     PAGE: SMART KITTING
+     ====================================================== -->
+<section class="page" id="page-kitting">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-label">Smart Kit Generator</div>
+      <h2 class="section-title">Auto-Generate Formwork Kits</h2>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:16px">Configure Kit Parameters</div>
+          <label class="form-label">Project</label>
+          <select class="form-input">
+            <option>LT-MUM-3A — Mumbai Tower B</option>
+            <option>LT-HYD-7B — Hyderabad Commercial</option>
+            <option>LT-BLR-5C — Bangalore Residential</option>
+          </select>
+          <label class="form-label">Construction Phase</label>
+          <select class="form-input" id="phaseSelect">
+            <option>Phase 2 — Superstructure (Floors 1–5)</option>
+            <option>Phase 3 — Superstructure (Floors 6–12)</option>
+            <option>Phase 4 — Core Walls</option>
+          </select>
+          <label class="form-label">Optimization Priority</label>
+          <select class="form-input">
+            <option>Minimize Cost (LP Model)</option>
+            <option>Maximize Reuse</option>
+            <option>Balanced (Cost + Reuse)</option>
+          </select>
+          <label class="form-label">Available Inventory Budget (₹ Lakhs)</label>
+          <input type="range" min="20" max="200" value="80" class="form-input" id="budgetRange" oninput="updateBudget(this.value)" style="padding:4px;cursor:pointer">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--blue-bright);margin-bottom:12px">Budget: ₹<span id="budgetVal">80</span>L</div>
+          <button class="btn-primary" style="width:100%" onclick="generateKits()">⚡ Generate Smart Kits</button>
+        </div>
+      </div>
+
+      <div id="kitOutput">
+        <div class="card" style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;opacity:0.4">
+          <div style="font-size:3rem">📦</div>
+          <div style="font-size:0.9rem;color:var(--text-muted)">Configure parameters and generate kits</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kit cards appear after generation -->
+    <div id="kitCards" style="display:none;margin-top:20px">
+      <div class="section-label" style="margin-bottom:12px">Generated Kits</div>
+      <div class="grid-3" id="kitCardsGrid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     PAGE: FORECAST
+     ====================================================== -->
+<section class="page" id="page-forecast">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-label">Demand Forecasting</div>
+      <h2 class="section-title">Phase-Wise Material Prediction</h2>
+      <p class="section-desc">Time-series models (Prophet + ARIMA) forecast material requirements aligned to project schedule.</p>
+    </div>
+
+    <div class="tab-group">
+      <button class="tab-btn active" onclick="switchTab('t1',this)">Wall Panels</button>
+      <button class="tab-btn" onclick="switchTab('t2',this)">Props & Soldiers</button>
+      <button class="tab-btn" onclick="switchTab('t3',this)">Tie Rods</button>
+    </div>
+
+    <div class="tab-content active" id="t1">
+      <div class="grid-2">
+        <div class="chart-wrap">
+          <div class="chart-title">Demand Forecast — Wall Panels <span class="badge badge-blue" style="margin-left:8px">Prophet Model</span></div>
+          <svg viewBox="0 0 400 180" id="forecastChart1" style="width:100%;height:180px"></svg>
+          <div style="display:flex;gap:16px;margin-top:10px;font-size:0.72rem;color:var(--text-muted)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:16px;height:2px;background:var(--blue);display:inline-block"></span> Actual</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:16px;height:2px;background:var(--cyan);border-top:1px dashed;display:inline-block"></span> Forecast</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:16px;height:6px;background:rgba(6,182,212,0.15);display:inline-block"></span> 95% CI</span>
+          </div>
+        </div>
+        <div>
+          <div class="chart-wrap" style="margin-bottom:16px">
+            <div class="chart-title">Forecast Accuracy</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">MAPE</div>
+                <div style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:#34D399">3.2%</div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">R²</div>
+                <div style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--blue-bright)">0.94</div>
+              </div>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="card-title" style="margin-bottom:12px;font-size:0.85rem">Phase Requirements</div>
+            <div id="phaseReqs"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="t2">
+      <div class="chart-wrap">
+        <div class="chart-title">Props & Soldiers Demand Forecast</div>
+        <svg viewBox="0 0 400 180" id="forecastChart2" style="width:100%;height:180px"></svg>
+      </div>
+    </div>
+    <div class="tab-content" id="t3">
+      <div class="chart-wrap">
+        <div class="chart-title">Tie Rods Demand Forecast</div>
+        <svg viewBox="0 0 400 180" id="forecastChart3" style="width:100%;height:180px"></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================
+     PAGE: OPTIMIZER
+     ====================================================== -->
+<section class="page" id="page-optimizer">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-label">Mathematical Optimization</div>
+      <h2 class="section-title">Cost Optimization Engine</h2>
+      <p class="section-desc">Linear programming minimizes total holding + procurement cost subject to demand, reuse, and schedule constraints.</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:16px">Objective Function</div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;line-height:1.8;color:var(--cyan)">
+            <div style="color:var(--text-muted);margin-bottom:6px">// Minimize total cost</div>
+            <div>min Σ [<span style="color:var(--blue-bright)">c_p</span> · x_it + <span style="color:#34D399">c_h</span> · I_it]</div>
+            <div style="margin-top:8px;color:var(--text-muted)">// Subject to:</div>
+            <div>I_it = I_it-1 + x_it – d_it</div>
+            <div>x_it ≥ 0, I_it ≥ SS_i</div>
+            <div>Σ r_ij · y_j ≥ R_i</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">Set Constraints</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label class="form-label">Min Reuse Cycles</label>
+              <input type="number" class="form-input" value="4" id="minReuse">
+            </div>
+            <div>
+              <label class="form-label">Safety Stock (%)</label>
+              <input type="number" class="form-input" value="10" id="safetyStock">
+            </div>
+            <div>
+              <label class="form-label">Holding Cost (₹/unit/day)</label>
+              <input type="number" class="form-input" value="12">
+            </div>
+            <div>
+              <label class="form-label">Procurement Lead Days</label>
+              <input type="number" class="form-input" value="7">
+            </div>
+          </div>
+          <button class="btn-primary" style="width:100%;margin-top:8px" onclick="runOptimizer()">▶ Run LP Solver</button>
+        </div>
+      </div>
+
+      <div id="optimizerResults">
+        <div class="card" style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;opacity:0.4">
+          <div style="font-size:3rem">⚡</div>
+          <div style="font-size:0.9rem;color:var(--text-muted)">Configure and run the LP solver</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="optimizerDetail" style="display:none;margin-top:20px">
+      <div class="sep"></div>
+      <div class="section-label" style="margin-bottom:12px">Optimization Output</div>
+      <div class="grid-4">
+        <div class="kpi-card green">
+          <div class="kpi-label">TOTAL COST SAVINGS</div>
+          <div class="kpi-value">₹34.2L</div>
+          <div class="kpi-change up">↑ vs baseline</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">UNITS PROCURED</div>
+          <div class="kpi-value">1,847</div>
+          <div class="kpi-change up">↓ -312 units</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">REUSE FACTOR</div>
+          <div class="kpi-value">5.8×</div>
+          <div class="kpi-change up">↑ +1.8× target</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">INVENTORY COST</div>
+          <div class="kpi-value">₹8.1L</div>
+          <div class="kpi-change down">↓ -42% vs manual</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap" style="margin-top:16px">
+        <div class="chart-title">Cost Comparison: Manual vs ReFormAI <span class="badge badge-green" style="margin-left:8px">LP Optimized</span></div>
+        <svg viewBox="0 0 600 160" id="comparisonChart" style="width:100%;height:160px"></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div class="modal-title">Run New Analysis</div>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <label class="form-label">Select Project</label>
+    <select class="form-input">
+      <option>LT-MUM-3A — Mumbai Tower B</option>
+      <option>LT-HYD-7B — Hyderabad Commercial</option>
+    </select>
+    <label class="form-label">Analysis Type</label>
+    <select class="form-input">
+      <option>Full Pipeline (BIM → Kitting → Optimization)</option>
+      <option>Demand Forecast Only</option>
+      <option>Repetition Detection Only</option>
+    </select>
+    <label class="form-label">Phase</label>
+    <select class="form-input">
+      <option>All Phases</option>
+      <option>Phase 2 — Superstructure</option>
+      <option>Phase 3 — Upper Floors</option>
+    </select>
+    <div id="analysisProg" style="display:none;margin:12px 0">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px" id="analysisStep">Initializing...</div>
+      <div class="loading-bar"><div class="loading-fill"></div></div>
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:4px" onclick="runAnalysis()">▶ Start Analysis</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle">Analysis Complete</div>
+  <div class="toast-msg" id="toastMsg">12 reuse opportunities detected.</div>
+</div>
+
+<script>
+// =================== NAVIGATION ===================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const order = ['overview','dashboard','bim','kitting','forecast','optimizer'];
+  const idx = order.indexOf(id);
+  if(idx >= 0) tabs[idx].classList.add('active');
+
+  // Lazy init
+  if(id === 'dashboard') initDashboard();
+  if(id === 'forecast') initForecast();
+}
+
+function setActiveStep(el) {
+  document.querySelectorAll('.pipe-step').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// =================== HERO COUNTER ===================
+function animateCounter(el, target, suffix, duration=1500) {
+  let start = 0; const step = 16;
+  const interval = setInterval(() => {
+    start += target / (duration / step);
+    if(start >= target) { start = target; clearInterval(interval); }
+    el.textContent = Math.round(start) + suffix;
+  }, step);
+}
+setTimeout(() => {
+  animateCounter(document.getElementById('stat1'), 20, '%');
+  animateCounter(document.getElementById('stat2'), 27, '%');
+  animateCounter(document.getElementById('stat3'), 5.8, 'x', 1500);
+  animateCounter(document.getElementById('stat4'), 60, '%');
+}, 400);
+
+// =================== DASHBOARD ===================
+let dashInit = false;
+function initDashboard() {
+  if(dashInit) return; dashInit = true;
+  drawBarChart('barChart', [28,34,41,38,52,47,61], ['Oct','Nov','Dec','Jan','Feb','Mar','Apr'], '#3B82F6', '#06B6D4');
+  drawBarChart('reuseChart', [3.2,4.1,4.8,5.2,5.8,6.1,5.9], ['Ph1','Ph2','Ph3','Ph4','Ph5','Ph6','Ph7'], '#10B981', '#34D399');
+}
+
+function drawBarChart(id, data, labels, c1, c2) {
+  const svg = document.getElementById(id);
+  const W=400, H=150, pad=30, barW=32, gap=8;
+  const max = Math.max(...data) * 1.2;
+  let html = `<defs><linearGradient id="grad_${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}" stop-opacity="0.6"/></linearGradient></defs>`;
+  data.forEach((v, i) => {
+    const x = pad + i * (barW + gap);
+    const bh = ((v / max) * (H - 40));
+    const y = H - 20 - bh;
+    html += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" fill="url(#grad_${id})" rx="4" opacity="0.9">
+      <animate attributeName="height" from="0" to="${bh}" dur="0.6s" begin="${i*0.08}s" fill="freeze"/>
+      <animate attributeName="y" from="${H-20}" to="${y}" dur="0.6s" begin="${i*0.08}s" fill="freeze"/>
+    </rect>`;
+    html += `<text x="${x + barW/2}" y="${H-5}" text-anchor="middle" font-size="8" fill="#64748B">${labels[i]}</text>`;
+    html += `<text x="${x + barW/2}" y="${y-4}" text-anchor="middle" font-size="8" fill="${c1}" font-weight="600">${v}</text>`;
+  });
+  // Grid lines
+  [0.25,0.5,0.75,1].forEach(frac => {
+    const y = H - 20 - frac * (H-40);
+    html += `<line x1="${pad}" y1="${y}" x2="${W-10}" y2="${y}" stroke="#152038" stroke-width="1"/>`;
+  });
+  svg.innerHTML = html;
+}
+
+function refreshDashboard() {
+  const newData = Array(7).fill(0).map(() => Math.round(20 + Math.random()*50));
+  drawBarChart('barChart', newData, ['Oct','Nov','Dec','Jan','Feb','Mar','Apr'], '#3B82F6', '#06B6D4');
+  showToast('Dashboard Updated', 'Latest data loaded successfully.');
+}
+
+// =================== BIM ENGINE ===================
+function simulateBIMAnalysis() {
+  const zone = document.getElementById('uploadZone');
+  zone.innerHTML = '<div class="upload-icon">⚙️</div><div class="upload-title">Analyzing BIM Model...</div><div class="loading-bar" style="width:200px;margin:10px auto"><div class="loading-fill"></div></div>';
+  setTimeout(() => {
+    zone.style.display = 'none';
+    document.getElementById('bimResults').style.display = 'block';
+    drawClusters();
+    fillClusterTable();
+    drawHeatmap();
+    showToast('BIM Analysis Complete', '8 clusters, 312 elements processed.');
+  }, 2000);
+}
+
+function drawClusters() {
+  const clusters = [
+    {x:80, y:60, r:28, color:'#3B82F6', label:'C1 Wall-L'},
+    {x:160, y:45, r:22, color:'#06B6D4', label:'C2 Wall-S'},
+    {x:240, y:80, r:32, color:'#10B981', label:'C3 Slab'},
+    {x:310, y:50, r:18, color:'#F59E0B', label:'C4 Col'},
+    {x:120, y:140, r:24, color:'#8B5CF6', label:'C5 Beam'},
+    {x:200, y:155, r:20, color:'#EF4444', label:'C6 Core'},
+    {x:280, y:145, r:26, color:'#EC4899', label:'C7 Stair'},
+    {x:340, y:130, r:16, color:'#F97316', label:'C8 Misc'},
+  ];
+  const svg = document.getElementById('clusterSvg');
+  // Generate scattered dots
+  let html = '';
+  clusters.forEach((c, ci) => {
+    // scatter dots around center
+    for(let i=0; i<15; i++) {
+      const angle = Math.random()*Math.PI*2;
+      const dist = Math.random()*c.r*1.4;
+      const dx = c.x + Math.cos(angle)*dist + (Math.random()-0.5)*8;
+      const dy = c.y + Math.sin(angle)*dist + (Math.random()-0.5)*8;
+      html += `<circle cx="${dx}" cy="${dy}" r="${2+Math.random()*2}" fill="${c.color}" opacity="${0.5+Math.random()*0.5}"/>`;
+    }
+    // center marker
+    html += `<circle cx="${c.x}" cy="${c.y}" r="5" fill="${c.color}" opacity="0.9"/>`;
+    html += `<circle cx="${c.x}" cy="${c.y}" r="${c.r}" fill="${c.color}" opacity="0.08" stroke="${c.color}" stroke-width="1" stroke-dasharray="4 2"/>`;
+    html += `<text x="${c.x}" y="${c.y+c.r+12}" text-anchor="middle" font-size="8" fill="${c.color}">${c.label}</text>`;
+  });
+  svg.innerHTML = html;
+}
+
+function fillClusterTable() {
+  const clusters = [
+    ['C1 Wall-L', 48, '5.2×', 'KIT-01'],
+    ['C2 Wall-S', 36, '4.8×', 'KIT-02'],
+    ['C3 Slab', 62, '6.1×', 'KIT-03'],
+    ['C4 Col', 28, '3.9×', 'KIT-04'],
+    ['C5 Beam', 40, '4.4×', 'KIT-05'],
+    ['C6 Core', 32, '5.7×', 'KIT-06'],
+    ['C7 Stair', 44, '3.2×', 'KIT-07'],
+    ['C8 Misc', 22, '2.8×', 'KIT-08'],
+  ];
+  const tbody = document.getElementById('clusterTable');
+  tbody.innerHTML = clusters.map(r => `
+    <tr>
+      <td style="font-weight:600">${r[0]}</td>
+      <td>${r[1]}</td>
+      <td style="color:#34D399;font-weight:600">${r[2]}</td>
+      <td><span class="badge badge-blue">${r[3]}</span></td>
+    </tr>`).join('');
+}
+
+function drawHeatmap() {
+  const grid = document.getElementById('heatmap');
+  const vals = Array(49).fill(0).map(() => Math.random());
+  const colors = ['#0A1220','#102040','#1a3560','#1e4080','#2563EB','#3B82F6','#60A5FA','#93C5FD'];
+  grid.innerHTML = vals.map((v, i) => {
+    const ci = Math.floor(v * colors.length);
+    return `<div class="heatmap-cell" style="background:${colors[ci]}" title="Reuse: ${(v*6+1).toFixed(1)}×"></div>`;
+  }).join('');
+}
+
+// =================== KITTING ===================
+function updateBudget(v) { document.getElementById('budgetVal').textContent = v; }
+
+function generateKits() {
+  const out = document.getElementById('kitOutput');
+  out.innerHTML = `<div class="card" style="height:100%">
+    <div class="card-title" style="margin-bottom:12px">Generating Optimal Kits...</div>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px" id="kitStep">Running LP solver...</div>
+    <div class="loading-bar"><div class="loading-fill"></div></div>
+    <div style="margin-top:16px">
+      <div style="font-size:0.78rem;color:var(--text-muted)">Constraints Applied</div>
+      <div class="insight" style="margin-top:8px"><div class="insight-icon">✅</div><div><div class="insight-title">Reuse Maximized</div><div class="insight-desc">87% of elements reused from Phase 2</div></div></div>
+      <div class="insight"><div class="insight-icon">✅</div><div><div class="insight-title">Budget Within Limits</div><div class="insight-desc">₹${document.getElementById('budgetVal').textContent}L budget respected</div></div></div>
+    </div>
+  </div>`;
+  const steps = ['Running LP solver...','Applying reuse constraints...','Calculating optimal quantities...','Assembling kit manifests...','Done!'];
+  let si = 0;
+  const iv = setInterval(() => {
+    if(si < steps.length) document.getElementById('kitStep').textContent = steps[si++];
+    else {
+      clearInterval(iv);
+      showGeneratedKits();
+    }
+  }, 500);
+}
+
+function showGeneratedKits() {
+  const kits = [
+    { id:'KIT-MU-01', phase:'Floors 1-3', panels:'240 × 900mm', items: 8, cost:'₹12.4L', reuse:'5.2×', status:'Ready'},
+    { id:'KIT-MU-02', phase:'Floors 4-6', panels:'180 × 600mm', items: 6, cost:'₹8.7L', reuse:'6.1×', status:'Ready'},
+    { id:'KIT-MU-03', phase:'Core Walls', panels:'320 × 1200mm', items: 11, cost:'₹21.3L', reuse:'4.8×', status:'Review'},
+  ];
+  const grid = document.getElementById('kitCardsGrid');
+  grid.innerHTML = kits.map(k => `
+    <div class="card" style="border-color:rgba(16,185,129,0.2)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800">${k.id}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted)">${k.phase}</div>
+        </div>
+        <span class="badge ${k.status==='Ready'?'badge-green':'badge-amber'}">${k.status}</span>
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">Primary: ${k.panels}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div><div style="font-size:0.65rem;color:var(--text-muted)">COMPONENTS</div><div style="font-weight:700;color:var(--blue-bright)">${k.items} types</div></div>
+        <div><div style="font-size:0.65rem;color:var(--text-muted)">EST. COST</div><div style="font-weight:700;color:#34D399">${k.cost}</div></div>
+        <div><div style="font-size:0.65rem;color:var(--text-muted)">REUSE FACTOR</div><div style="font-weight:700;color:var(--amber)">${k.reuse}</div></div>
+      </div>
+      <button class="btn-outline" style="width:100%;padding:7px;font-size:0.78rem" onclick="showToast('Kit ${k.id}','BoQ exported to ERP system.')">Export to ERP ↗</button>
+    </div>`).join('');
+  document.getElementById('kitCards').style.display = 'block';
+  showToast('3 Kits Generated', 'Optimal formwork kits ready for deployment.');
+}
+
+// =================== FORECAST ===================
+let forecastInit = false;
+function initForecast() {
+  if(forecastInit) return; forecastInit = true;
+  drawForecastChart('forecastChart1', [420,390,450,480,510,440,520,490,560,580], [580,620,610,650,680,700], '#3B82F6', '#06B6D4');
+  drawForecastChart('forecastChart2', [180,200,190,220,210,240,230,250,260,270], [270,290,285,300,310,320], '#10B981', '#34D399');
+  drawForecastChart('forecastChart3', [90,85,100,95,110,105,120,115,130,125], [125,135,132,140,145,150], '#F59E0B', '#FCD34D');
+
+  const phases = [
+    {name:'Phase 1 — Foundation', val:380, max:600},
+    {name:'Phase 2 — Superstructure', val:520, max:600},
+    {name:'Phase 3 — Core Walls', val:290, max:600},
+    {name:'Phase 4 — Upper Floors', val:440, max:600},
+  ];
+  document.getElementById('phaseReqs').innerHTML = phases.map(p => `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px">
+        <span>${p.name}</span><span style="font-weight:600;color:var(--blue-bright)">${p.val} units</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill blue" style="width:${(p.val/p.max*100).toFixed(0)}%"></div></div>
+    </div>`).join('');
+}
+
+function drawForecastChart(id, actual, forecast, c1, c2) {
+  const svg = document.getElementById(id);
+  const W=400, H=180, padL=30, padB=20, padT=10;
+  const allVals = [...actual, ...forecast];
+  const maxV = Math.max(...allVals) * 1.1;
+  const minV = Math.min(...allVals) * 0.9;
+  const total = actual.length + forecast.length;
+  const xStep = (W - padL - 10) / (total - 1);
+  const scaleY = v => padT + (1 - (v - minV)/(maxV - minV)) * (H - padB - padT);
+
+  const aPoints = actual.map((v,i) => `${padL + i*xStep},${scaleY(v)}`).join(' ');
+  const fStart = actual.length - 1;
+  const fPoints = forecast.map((v,i) => `${padL + (fStart+i)*xStep},${scaleY(v)}`).join(' ');
+  const ciTop = forecast.map((v,i) => `${padL + (fStart+i)*xStep},${scaleY(v*1.05)}`).join(' ');
+  const ciBot = forecast.map((v,i) => `${padL + (fStart+i)*xStep},${scaleY(v*0.95)}`).join(' ').split(' ').reverse().join(' ');
+
+  // Grid
+  let html = '';
+  [0,0.25,0.5,0.75,1].forEach(frac => {
+    const y = padT + frac * (H - padB - padT);
+    html += `<line x1="${padL}" y1="${y}" x2="${W-5}" y2="${y}" stroke="#152038" stroke-width="1"/>`;
+    const v = Math.round(maxV - frac*(maxV-minV));
+    html += `<text x="${padL-4}" y="${y+3}" text-anchor="end" font-size="7" fill="#64748B">${v}</text>`;
+  });
+
+  // CI band
+  const ciPoly = ciTop + ' ' + ciBot;
+  html += `<polygon points="${ciPoly}" fill="${c2}" opacity="0.12"/>`;
+
+  // Vertical divider
+  const divX = padL + fStart * xStep;
+  html += `<line x1="${divX}" y1="${padT}" x2="${divX}" y2="${H-padB}" stroke="${c2}" stroke-width="1" stroke-dasharray="3 2" opacity="0.5"/>`;
+  html += `<text x="${divX+3}" y="${padT+8}" font-size="7" fill="${c2}">Forecast →</text>`;
+
+  // Actual line
+  html += `<polyline points="${aPoints}" fill="none" stroke="${c1}" stroke-width="2"/>`;
+  // Forecast line
+  html += `<polyline points="${[actual[actual.length-1],...forecast].map((v,i) => `${padL+(fStart+i)*xStep},${scaleY(v)}`).join(' ')}" fill="none" stroke="${c2}" stroke-width="2" stroke-dasharray="5 3"/>`;
+
+  // Dots
+  actual.forEach((v,i) => {
+    html += `<circle cx="${padL+i*xStep}" cy="${scaleY(v)}" r="2.5" fill="${c1}"/>`;
+  });
+  svg.innerHTML = html;
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// =================== OPTIMIZER ===================
+function runOptimizer() {
+  const out = document.getElementById('optimizerResults');
+  out.innerHTML = `<div class="card" style="height:100%">
+    <div class="card-title" style="margin-bottom:12px">Solving LP Model...</div>
+    <div class="loading-bar"><div class="loading-fill"></div></div>
+    <div style="margin-top:16px;font-size:0.78rem;color:var(--text-muted)">
+      <div>✅ Variables: 248 decision vars</div>
+      <div>✅ Constraints: 134 applied</div>
+      <div>⚙️ Solver: Simplex Method</div>
+    </div>
+  </div>`;
+  setTimeout(() => {
+    out.innerHTML = `<div class="card" style="height:100%;border-color:rgba(16,185,129,0.3)">
+      <div class="card-title" style="margin-bottom:12px;color:#34D399">✅ Optimal Solution Found</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px">Converged in 47ms · 312 iterations</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div style="font-size:0.65rem;color:var(--text-muted)">OBJ VALUE</div><div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#34D399">₹34.2L</div></div>
+        <div><div style="font-size:0.65rem;color:var(--text-muted)">STATUS</div><div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--blue-bright)">OPTIMAL</div></div>
+        <div><div style="font-size:0.65rem;color:var(--text-muted)">REUSE FACTOR</div><div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--amber)">5.8×</div></div>
+        <div><div style="font-size:0.65rem;color:var(--text-muted)">ITERATIONS</div><div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text)">312</div></div>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:16px" onclick="exportOptResults()">Export Procurement Plan</button>
+    </div>`;
+    document.getElementById('optimizerDetail').style.display = 'block';
+    drawComparisonChart();
+    showToast('Optimization Complete', 'LP solver found optimal solution in 47ms.');
+  }, 2500);
+}
+
+function drawComparisonChart() {
+  const svg = document.getElementById('comparisonChart');
+  const categories = ['Procurement', 'Holding', 'Excess Waste', 'Transport', 'Planning'];
+  const manual =    [85, 42, 38, 22, 15];
+  const reformed =  [51, 24, 12, 18, 6];
+  const W=600, H=160, padL=80, padB=25, padT=10;
+  const maxV = 100; const bW = 18; const gap = 24;
+  let html = `<defs>
+    <linearGradient id="gManual" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#64748B"/><stop offset="100%" stop-color="#334155"/></linearGradient>
+    <linearGradient id="gReform" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient>
+  </defs>`;
+  categories.forEach((cat, i) => {
+    const x = padL + i * (bW*2 + gap + 10);
+    const mh = (manual[i]/maxV)*(H-padB-padT);
+    const rh = (reformed[i]/maxV)*(H-padB-padT);
+    html += `<rect x="${x}" y="${H-padB-mh}" width="${bW}" height="${mh}" fill="url(#gManual)" rx="2" opacity="0.7">
+      <animate attributeName="height" from="0" to="${mh}" dur="0.5s" fill="freeze"/>
+      <animate attributeName="y" from="${H-padB}" to="${H-padB-mh}" dur="0.5s" fill="freeze"/>
+    </rect>`;
+    html += `<rect x="${x+bW+4}" y="${H-padB-rh}" width="${bW}" height="${rh}" fill="url(#gReform)" rx="2">
+      <animate attributeName="height" from="0" to="${rh}" dur="0.5s" begin="${i*0.1}s" fill="freeze"/>
+      <animate attributeName="y" from="${H-padB}" to="${H-padB-rh}" dur="0.5s" begin="${i*0.1}s" fill="freeze"/>
+    </rect>`;
+    html += `<text x="${x+bW+2}" y="${H-8}" text-anchor="middle" font-size="7.5" fill="#64748B">${cat}</text>`;
+    html += `<text x="${x}" y="${H-padB-mh-4}" font-size="7" fill="#94A3B8">₹${manual[i]}L</text>`;
+    html += `<text x="${x+bW+4}" y="${H-padB-rh-4}" font-size="7" fill="#60A5FA">₹${reformed[i]}L</text>`;
+  });
+  // Legend
+  html += `<rect x="${W-120}" y="10" width="10" height="10" fill="#64748B" rx="2"/>`;
+  html += `<text x="${W-106}" y="19" font-size="8" fill="#94A3B8">Manual Planning</text>`;
+  html += `<rect x="${W-120}" y="26" width="10" height="10" fill="#3B82F6" rx="2"/>`;
+  html += `<text x="${W-106}" y="35" font-size="8" fill="#60A5FA">ReFormAI</text>`;
+  svg.innerHTML = html;
+}
+
+function exportOptResults() { showToast('Procurement Plan Exported', 'Sent to ERP & PM system.'); }
+
+// =================== MODAL ===================
+function showModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function runAnalysis() {
+  const steps = ['Parsing BIM model...','Detecting repetitions...','Forecasting demand...','Running LP optimizer...','Generating kit manifests...','Complete!'];
+  let si = 0;
+  document.getElementById('analysisProg').style.display = 'block';
+  const iv = setInterval(() => {
+    if(si < steps.length) document.getElementById('analysisStep').textContent = steps[si++];
+    else {
+      clearInterval(iv);
+      setTimeout(() => {
+        closeModal();
+        showToast('Analysis Complete', '8 clusters · 3 kits generated · ₹34.2L savings identified.');
+      }, 500);
+    }
+  }, 600);
+}
+
+// =================== TOAST ===================
+function showToast(title, msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if(e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
