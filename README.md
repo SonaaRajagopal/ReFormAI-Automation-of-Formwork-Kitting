@@ -1,9 +1,3 @@
-Awesome! I’ll add your deployment link in a prominent place in the README so anyone landing on your GitHub sees the live demo right away.
-
-Here’s the **updated README.md content** with your link included:
-
----
-
 # ReFormAI 🏗️
 
 **AI-Powered Automation of Formwork Kitting**
